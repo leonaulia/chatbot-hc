@@ -233,7 +233,7 @@ def jawab(pertanyaan, force=None):
 
 # ── UI Streamlit ───────────────────────────────────────────────────
 st.set_page_config(page_title='Conversational Analytics — HR', page_icon='📊', layout='centered')
-st.title('📊 Conversational Analytics — HR')
+st.title('Conversational Analytics — HR')
 st.caption('Tanya data HR dalam bahasa biasa → jawaban adaptif (tabel / narasi / JSON / chart).')
 
 with st.sidebar:
@@ -242,10 +242,9 @@ with st.sidebar:
     st.write(f'**Database:** `{DIALEK}`')
     paksa = st.selectbox('Paksa format', ['auto', 'tabel', 'narasi', 'json', 'chart'])
     st.markdown('**Contoh:**')
-    for ex in ['Rata-rata gaji pokok per departemen',
-               'Buat grafik komposisi jumlah karyawan per jabatan',
-               'Jelaskan sebaran gaji antar departemen dan beri insight',
-               'Berikan komposisi jabatan dalam format JSON']:
+    for ex in ["Berapa jumlah pegawai per divisi?",
+            "Siapa yang belum mengikuti diklat Data Engineering?",
+            "Berapa rata-rata nilai diklat per unit (divisi)?"]:
         st.caption('• ' + ex)
     if st.button('🗑️ Bersihkan chat'):
         st.session_state.messages = []
