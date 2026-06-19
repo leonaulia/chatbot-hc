@@ -11,7 +11,11 @@ from sqlalchemy.pool import StaticPool
 # Set up page configuration first before any other Streamlit commands
 st.set_page_config(page_title='Conversational Analytics — HR', page_icon='📊', layout='centered')
 
-# Secrets
+# Secrets cloud
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+DB_URL = st.secrets.get("DB_URL", "postgresql://localhost/postgres")
+
+# Secrets local
 GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
 DB_URL = st.secrets.get("DB_URL", "postgresql://localhost/postgres")
 
@@ -78,7 +82,8 @@ def tanya_llm(prompt, temperature=0, **kwargs):
 #======================================= Functions =================================================
 def bangun_prompt(pertanyaan):
     return (f'Anda ahli SQL {DIALEK}. Skema:\n{SKEMA}\n'
-            'Buat SATU query SELECT (JOIN bila perlu). Balas HANYA query SQL.\n'
+            'Buat SATU query SELECT (JOIN bila perlu). Balas HANYA query SQL.\n' \
+            'Rule: Jangan mengarang. jika pertanyaan user berikut tidak relevan atau tidak bisa dijawab dengan table yang anda punya, jangan mengarang SQL'
             f'Pertanyaan: {pertanyaan}')
 
 
@@ -99,7 +104,20 @@ def _strip_komentar(sql):
     sql = re.sub(r'/\*.*?\*/', ' ', sql, flags=re.S)
     return re.sub(r'--[^\n]*', ' ', sql)
 
+# ====================================GUARDRAILS================================================
+# prompt injection guardrails
+def is_safe(user_input: str) -> bool:
+    """
+    cek kata2 yang biasa digunakan untuk prompt injection.
+    """
+    bad_words = ["ignore", "override", "system prompt", "forget", "instead", "lupakan"]
 
+    for word in bad_words:
+        if word in user_input.lower():
+            return False  # Not safe
+    return True  # Safe
+
+# validasi sql
 def validasi_sql(sql, batas=200, batas_maks=1000):
     t = _strip_komentar(sql).strip().rstrip(';').strip()
     low = t.lower()
@@ -148,7 +166,7 @@ def ask_db(pertanyaan, maks_retry=2):
     return {'ok': False, 'error': last, 'fallback': 'Maaf, query valid tidak dapat disusun.'}
 
 
-# ── Routing & format ───────────────────────────────────────────────
+# =================================== Routing & format ======================================================
 def pilih_format(pertanyaan, df=None):
     p = pertanyaan.lower()
     if any(k in p for k in ['grafik', 'chart', 'visual', 'plot', 'diagram', 'pie', 'bar chart', 'line chart']):
@@ -172,7 +190,7 @@ def _ringkas_df(df):
 
 def buat_narasi(df, pertanyaan):
     fakta = _ringkas_df(df)
-    prompt = (f'Anda analis data. Pertanyaan: {pertanyaan}\n'
+    prompt = (f'Anda adalah asisten data analis data HC. Pertanyaan: {pertanyaan}\n'
               f'Data:\n{df.head(10).to_string(index=False)}\n'
               f'RINGKAS_DATA: {fakta}\n'
               'Tulis narasi 2-3 kalimat berbasis data di atas saja.')
@@ -216,6 +234,10 @@ def buat_chart(df, pertanyaan='', jenis=None):
 
 
 def jawab(pertanyaan, force=None):
+    #cek input from prompt injection
+    if not is_safe(pertanyaan):
+        return {'format': 'error', 'isi': 'Hidup JOKOWI!', 'pertanyaan': pertanyaan}
+
     res = ask_db(pertanyaan)
     if not res['ok']:
         return {'format': 'error', 'isi': res.get('fallback'), 'pertanyaan': pertanyaan}
@@ -231,9 +253,9 @@ def jawab(pertanyaan, force=None):
     return out
 
 
-# ── UI Streamlit ───────────────────────────────────────────────────
+# ==================================== UI Streamlit =======================================
 st.set_page_config(page_title='Conversational Analytics — HR', page_icon='📊', layout='centered')
-st.title('Conversational Analytics — HR')
+st.title('Chatbot HC')
 st.caption('Tanya data HR dalam bahasa biasa → jawaban adaptif (tabel / narasi / JSON / chart).')
 
 with st.sidebar:
@@ -284,7 +306,7 @@ q = st.chat_input('Tanya tentang data HR…')
 if q:
     st.session_state.messages.append({'role': 'user', 'content': q})
     key = hashlib.sha256((q.lower().strip() + '|' + paksa).encode()).hexdigest()
-    with st.spinner('Memproses…'):
+    with st.spinner('Tunggu bentar…'):
         if key in st.session_state.cache:
             out = st.session_state.cache[key]
         else:
