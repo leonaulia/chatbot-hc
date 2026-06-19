@@ -1,4 +1,4 @@
-import streamlit
+import streamlit as st
 
 # Secrets
 GROQ_API_KEY = st.secrets["GROQ_API_KEY"]
@@ -13,7 +13,7 @@ if engine:
     print("connected supabase")
 else:
     print("connected failed")
-    
+
 @st.cache_resource
 def get_engine():
     eng = create_engine(DB_URL, pool_pre_ping=True)
