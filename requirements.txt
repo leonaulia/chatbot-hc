@@ -1,9 +1,7 @@
 streamlit
-gspread
-google-auth
+matplotlib
 pandas
-plotly
 numpy
-python-dateutil
-openai
-openpyxl
+plotly
+sqlalchemy
+psycopg2-binary
