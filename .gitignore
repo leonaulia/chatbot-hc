@@ -1,0 +1,10 @@
+.streamlit/
+# Ignore local virtual environment directories
+venv/
+.venv/
+dashboard/
+Include/
+Lib/
+Scripts/
+share/
+python/
